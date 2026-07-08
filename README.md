@@ -1,94 +1,118 @@
 # shell-assist
 
-A zsh/macOS shell assistant powered by `pi`, modeled after AIChat's shell assistant.
+Pi-powered zsh shell assistant for macOS. Generate, review, revise, explain,
+copy, and safely execute shell commands from natural language.
 
-It turns natural language into a zsh command, requires confirmation before execution,
-can revise/describe/copy the command, and records successfully executed generated
-commands in zsh history.
+`pai` recreates the shell-assistant workflow from
+[`sigoden/aichat`](https://github.com/sigoden/aichat), but uses
+[`pi`](https://github.com/earendil-works/pi-coding-agent) as the LLM backend.
+
+## Features
+
+- Natural language → valid zsh command
+- macOS 26+ target environment
+- Confirmation before execution
+- Revise generated commands without starting over
+- Explain generated or existing shell commands
+- Copy commands to the clipboard with `pbcopy`
+- Add successfully executed generated commands to zsh history
+- Optional `Alt+E` zle widget that replaces the current prompt buffer
+- Uses `pi --system-prompt` so shell-assistant instructions are sent as a real system prompt
 
 ## Requirements
 
 - macOS 26+
 - zsh
-- `pi` on `PATH`
-- `pbcopy` for copy action (built into macOS)
+- `pi` available on `PATH`
+- `pbcopy` for clipboard support (built into macOS)
 
-Default backend invocation uses `pi --system-prompt` so the shell prompt is a real system message rather than part of the user request:
+## Quick start
 
-```sh
-pi --model openai-codex/gpt-5.4-mini --system-prompt '<shell assistant prompt>' --no-extensions --no-tools -p --no-session '<request>'
-```
-
-The shell system prompt starts from AIChat's `%shell%` role and adds macOS/zsh-specific safety and Finder-counting rules.
-
-## Install
-
-Repo-first install for your current shell:
+Clone the repo, then source the zsh integration:
 
 ```sh
+git clone <repo-url> shell-assist
+cd shell-assist
 source ./shell-assist.zsh
 ```
 
-Permanent zsh install:
-
-```sh
-scripts/install-zsh --print
-# review the output, then either add it yourself or run:
-scripts/install-zsh --write
-```
-
-`--write` appends a `source .../shell-assist.zsh` line to `~/.zshrc`.
-
-Optional executable command:
-
-```sh
-chmod +x bin/pai scripts/install-zsh
-export PATH="$PWD/bin:$PATH"
-```
-
-> For full shell functionality, prefer sourcing `shell-assist.zsh`. The executable
-> wrapper runs in a child shell, so commands like `cd` or `export` cannot affect
-> your current terminal session.
-
-## Usage
-
-Interactive confirmed execution:
+Ask for a command:
 
 ```sh
 pai find all pdfs bigger than 10mb under Downloads
 ```
 
-Menu actions:
+`pai` will generate a command, then ask what to do:
 
-- `e` execute after confirmation
-- `r` revise the generated command
-- `d` describe the generated command
-- `c` copy command to clipboard
+```text
+execute | revise | describe | copy | quit:
+```
+
+The first letter of each action is highlighted. Press:
+
+- `e` execute
+- `r` revise
+- `d` describe
+- `c` copy
 - `q` quit
 
-Generate only:
+## Install permanently
+
+Print the `.zshrc` source line:
+
+```sh
+scripts/install-zsh --print
+```
+
+Append it to `~/.zshrc`:
+
+```sh
+scripts/install-zsh --write
+```
+
+For chezmoi or another dotfile manager, add the printed source line to your
+managed zsh config instead of using `--write`.
+
+## Usage
+
+### Confirmed execution
+
+```sh
+pai tell me how many items are in ~/Downloads folder
+```
+
+Example output:
+
+```sh
+find "$HOME/Downloads" -mindepth 1 -maxdepth 1 ! -name '.*' | wc -l
+```
+
+Then choose `execute`, `revise`, `describe`, `copy`, or `quit`.
+
+### Generate only
 
 ```sh
 pai --print show listening tcp ports
 ```
 
-Describe an existing command:
+### Explain a command
 
 ```sh
 pai --describe 'find . -name "*.log" -mtime +7 -print'
 ```
 
-## Alt+E zsh widget
+### Alt+E prompt replacement
 
-When sourced in an interactive zsh, `Alt+E` is bound automatically.
+When `shell-assist.zsh` is sourced in an interactive zsh session, `Alt+E` is
+bound automatically.
 
-1. Type a natural-language request at your prompt.
+1. Type a natural-language request at your shell prompt.
 2. Press `Alt+E`.
-3. The buffer is replaced with a generated command.
-4. Review/edit it, then press Enter yourself.
+3. The prompt buffer is replaced with a generated command.
+4. Review or edit the command.
+5. Press Enter yourself to run it.
 
-This is the closest match to AIChat's shell integration and naturally requires
-confirmation because nothing runs until you press Enter.
+This mirrors AIChat's shell integration and never auto-executes.
 
 ## Configuration
 
@@ -101,18 +125,57 @@ export PI_SHELL_ASSIST_BINDKEY=1       # 0 disables Alt+E binding
 export PI_SHELL_ASSIST_KEY=$'\ee'      # Alt+E
 ```
 
-Context defaults to `basic`: OS, zsh version, and current directory. Set
-`PI_SHELL_ASSIST_CONTEXT=git` to include a short git branch/status summary, or
-`none` to send no cwd/git context. No file contents are sent.
+Context modes:
 
-## Dotfiles / chezmoi
+- `none`: no cwd/git context
+- `basic`: OS, zsh version, and current directory
+- `git`: `basic` plus git root, branch, and short status
 
-Recommended pattern: track this repo or copy `shell-assist.zsh` into dotfiles,
-then source it from `.zshrc`:
+No file contents are sent to `pi` by default.
+
+## Backend
+
+Default generation call shape:
 
 ```sh
-source /path/to/shell-assist/shell-assist.zsh
+pi \
+  --model "$PI_SHELL_ASSIST_MODEL" \
+  --system-prompt '<shell assistant prompt>' \
+  --no-extensions \
+  --no-tools \
+  -p \
+  --no-session \
+  '<natural language request>'
 ```
 
-For chezmoi, add the source line to your managed zsh template rather than running
-`--write` directly.
+The system prompt starts from AIChat's `%shell%` role and adds macOS/zsh-specific
+safety rules and Finder-like counting behavior.
+
+## Executable wrapper
+
+`bin/pai` is included for convenience:
+
+```sh
+export PATH="$PWD/bin:$PATH"
+pai --print list files
+```
+
+For full shell behavior, prefer sourcing `shell-assist.zsh`. The wrapper runs in
+a child shell, so generated commands like `cd`, `export`, or `alias` cannot affect
+your current terminal session.
+
+## Safety notes
+
+- Commands are not executed without explicit confirmation.
+- The `Alt+E` widget only replaces your current prompt buffer.
+- Destructive commands are discouraged in the prompt; review everything before executing.
+- Successful generated commands are recorded in zsh history after execution.
+
+## Development
+
+Run smoke checks:
+
+```sh
+zsh -n shell-assist.zsh bin/pai scripts/install-zsh tests/smoke.zsh tests/fixtures/bin/pi
+zsh tests/smoke.zsh
+```
