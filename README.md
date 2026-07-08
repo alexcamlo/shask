@@ -26,14 +26,18 @@ copy, and safely execute shell commands from natural language.
 - `pi` available on `PATH`
 - `pbcopy` for clipboard support (built into macOS)
 
-## Quick start
+## Install
 
-Clone the repo, then source the zsh integration:
+One command:
 
 ```sh
-git clone <repo-url> shell-assist
-cd shell-assist
-source ./shell-assist.zsh
+curl -fsSL https://raw.githubusercontent.com/alexcamlo/shell-assist/main/install.sh | zsh
+```
+
+Restart zsh, or source the integration immediately:
+
+```sh
+source "$HOME/.local/share/shell-assist/shell-assist.zsh"
 ```
 
 Ask for a command:
@@ -56,22 +60,17 @@ The first letter of each action is highlighted. Press:
 - `c` copy
 - `q` quit
 
-## Install permanently
+The installer:
 
-Print the `.zshrc` source line:
+- installs files to `$HOME/.local/share/shell-assist`
+- creates `$HOME/.local/bin/pai`
+- adds a managed source block to `${ZDOTDIR:-$HOME}/.zshrc`
 
-```sh
-scripts/install-zsh --print
-```
-
-Append it to `~/.zshrc`:
+Uninstall, also one command:
 
 ```sh
-scripts/install-zsh --write
+curl -fsSL https://raw.githubusercontent.com/alexcamlo/shell-assist/main/install.sh | zsh -s -- --uninstall
 ```
-
-For chezmoi or another dotfile manager, add the printed source line to your
-managed zsh config instead of using `--write`.
 
 ## Usage
 
@@ -176,6 +175,6 @@ your current terminal session.
 Run smoke checks:
 
 ```sh
-zsh -n shell-assist.zsh bin/pai scripts/install-zsh tests/smoke.zsh tests/fixtures/bin/pi
+zsh -n shell-assist.zsh bin/pai scripts/install-zsh install.sh tests/smoke.zsh tests/fixtures/bin/pi
 zsh tests/smoke.zsh
 ```
