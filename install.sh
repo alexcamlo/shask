@@ -69,11 +69,11 @@ need() {
 }
 
 source_path_for_zshrc() {
-  local path="$SHELL_ASSIST_INSTALL_DIR/shell-assist.zsh"
-  if [[ "$path" == "$HOME/"* ]]; then
-    path="\$HOME/${path#$HOME/}"
+  local source_file="$SHELL_ASSIST_INSTALL_DIR/shell-assist.zsh"
+  if [[ "$source_file" == "$HOME/"* ]]; then
+    source_file="\$HOME/${source_file#$HOME/}"
   fi
-  print -r -- "$path"
+  print -r -- "$source_file"
 }
 
 zshrc_block() {
@@ -102,17 +102,17 @@ write_zshrc_block() {
   touch "$zshrc"
   if grep -Fqx '# >>> shell-assist >>>' "$zshrc"; then
     awk '
-      $0 == "# >>> shell-assist >>>" { print block; skip=1; next }
+      $0 == "# >>> shell-assist >>>" { skip=1; next }
       $0 == "# <<< shell-assist <<<" { skip=0; next }
       !skip { print }
-    ' block="$block" "$zshrc" > "$tmp"
+    ' "$zshrc" > "$tmp"
     mv "$tmp" "$zshrc"
-  else
-    {
-      print
-      print -r -- "$block"
-    } >> "$zshrc"
   fi
+
+  {
+    print
+    print -r -- "$block"
+  } >> "$zshrc"
 }
 
 remove_zshrc_block() {
@@ -134,22 +134,22 @@ remove_zshrc_block() {
 }
 
 move_to_trash() {
-  local path="$1"
-  [[ -e "$path" || -L "$path" ]] || return 0
+  local item_path="$1"
+  [[ -e "$item_path" || -L "$item_path" ]] || return 0
 
   local trash_dir="$HOME/.Trash"
   local name timestamp target
   timestamp="$(date +%Y%m%d%H%M%S)"
-  name="${path:t}"
+  name="${item_path:t}"
   target="$trash_dir/${name}.shell-assist.$timestamp"
 
   if (( dry_run )); then
-    say "Would move $path to $target"
+    say "Would move $item_path to $target"
     return 0
   fi
 
   mkdir -p "$trash_dir"
-  mv "$path" "$target"
+  mv "$item_path" "$target"
 }
 
 install_from_local_checkout() {
@@ -168,9 +168,10 @@ install_from_git() {
     run git -C "$SHELL_ASSIST_INSTALL_DIR" fetch --depth=1 origin "$SHELL_ASSIST_REF"
     run git -C "$SHELL_ASSIST_INSTALL_DIR" checkout -q FETCH_HEAD
   elif [[ -d "$SHELL_ASSIST_INSTALL_DIR" && -n "$(command ls -A "$SHELL_ASSIST_INSTALL_DIR" 2>/dev/null)" ]]; then
-    print -u2 -r -- "Install dir exists and is not a git checkout: $SHELL_ASSIST_INSTALL_DIR"
-    print -u2 -r -- "Move it aside or set SHELL_ASSIST_INSTALL_DIR."
-    exit 1
+    say "Moving existing non-git install aside: $SHELL_ASSIST_INSTALL_DIR"
+    move_to_trash "$SHELL_ASSIST_INSTALL_DIR"
+    run mkdir -p "${SHELL_ASSIST_INSTALL_DIR:h}"
+    run git clone --depth=1 --branch "$SHELL_ASSIST_REF" "$SHELL_ASSIST_REPO_URL" "$SHELL_ASSIST_INSTALL_DIR"
   else
     run mkdir -p "${SHELL_ASSIST_INSTALL_DIR:h}"
     run git clone --depth=1 --branch "$SHELL_ASSIST_REF" "$SHELL_ASSIST_REPO_URL" "$SHELL_ASSIST_INSTALL_DIR"
@@ -195,9 +196,10 @@ link_pai() {
 }
 
 install_shell_assist() {
-  local script_dir="${0:A:h}"
+  local script_path="${0:A}"
+  local script_dir="${script_path:h}"
 
-  if [[ -f "$script_dir/shell-assist.zsh" && -f "$script_dir/bin/pai" ]]; then
+  if [[ -f "$script_path" && "${script_path:t}" == "install.sh" && -f "$script_dir/shell-assist.zsh" && -f "$script_dir/bin/pai" ]]; then
     say "Installing from local checkout: $script_dir"
     install_from_local_checkout "$script_dir"
   else
