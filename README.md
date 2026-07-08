@@ -124,6 +124,24 @@ export PI_SHELL_ASSIST_BINDKEY=1       # 0 disables Alt+E binding
 export PI_SHELL_ASSIST_KEY=$'\ee'      # Alt+E
 ```
 
+### Provider and model
+
+Use Pi's `provider/model` format in `PI_SHELL_ASSIST_MODEL`:
+
+```sh
+export PI_SHELL_ASSIST_MODEL=openai/gpt-4o-mini
+export PI_SHELL_ASSIST_MODEL=anthropic/claude-sonnet-4-5
+export PI_SHELL_ASSIST_MODEL=google/gemini-2.5-pro
+```
+
+To see available models:
+
+```sh
+pi --list-models
+```
+
+### Context
+
 Context modes:
 
 - `none`: no cwd/git context
