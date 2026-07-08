@@ -1,0 +1,47 @@
+#!/usr/bin/env zsh
+# Print or install the ~/.zshrc snippet for pi shell-assist.
+
+set -euo pipefail
+
+script_dir="${0:A:h}"
+repo_dir="${script_dir:h}"
+zshrc="${ZDOTDIR:-$HOME}/.zshrc"
+snippet="source ${repo_dir}/shell-assist.zsh"
+
+usage() {
+  cat <<EOF
+Usage:
+  scripts/install-zsh --print
+  scripts/install-zsh --write
+
+--print prints the line to add to ~/.zshrc.
+--write appends it to: ${zshrc}
+EOF
+}
+
+case "${1:---print}" in
+  --print)
+    print -r -- "$snippet"
+    ;;
+  --write)
+    touch "$zshrc"
+    if grep -Fqx "$snippet" "$zshrc"; then
+      print -r -- "Already installed in $zshrc"
+    else
+      {
+        print
+        print -r -- "# Pi shell assistant"
+        print -r -- "$snippet"
+      } >> "$zshrc"
+      print -r -- "Installed in $zshrc"
+    fi
+    ;;
+  -h|--help)
+    usage
+    ;;
+  *)
+    print -u2 -r -- "Unknown option: $1"
+    usage >&2
+    exit 2
+    ;;
+esac
