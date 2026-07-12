@@ -1,12 +1,12 @@
 #!/usr/bin/env zsh
-# Print or install the ~/.zshrc snippet for pi shell-assist.
+# Print or install the ~/.zshrc snippet for shask.
 
 set -euo pipefail
 
 script_dir="${0:A:h}"
 repo_dir="${script_dir:h}"
 zshrc="${ZDOTDIR:-$HOME}/.zshrc"
-snippet="source ${repo_dir}/shell-assist.zsh"
+snippet="source ${repo_dir}/shask.zsh"
 
 usage() {
   cat <<EOF

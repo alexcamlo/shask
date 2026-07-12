@@ -1,0 +1,11 @@
+#!/usr/bin/env zsh
+# Executable wrapper for shask. For commands that must affect the current shell
+# (cd, export, alias, etc.), source ../shask.zsh from ~/.zshrc instead.
+
+set -euo pipefail
+
+script_dir="${0:A:h}"
+repo_dir="${script_dir:h}"
+source "${repo_dir}/shask.zsh"
+
+shask "$@"

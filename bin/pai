@@ -1,11 +1,10 @@
 #!/usr/bin/env zsh
-# Executable wrapper for pai. For commands that must affect the current shell
-# (cd, export, alias, etc.), source ../shell-assist.zsh from ~/.zshrc instead.
+# Compatibility wrapper for the former pai command.
 
 set -euo pipefail
 
 script_dir="${0:A:h}"
 repo_dir="${script_dir:h}"
-source "${repo_dir}/shell-assist.zsh"
+source "${repo_dir}/shask.zsh"
 
 pai "$@"

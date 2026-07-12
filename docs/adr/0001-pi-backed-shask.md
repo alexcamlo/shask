@@ -1,4 +1,4 @@
-# ADR 0001: Pi-backed zsh shell assistant
+# ADR 0001: Pi-backed shask shell assistant
 
 ## Status
 
@@ -23,8 +23,8 @@ shell itself.
 
 ## Decision
 
-Implement the assistant as a zsh source file with a `pai` function and zle widget.
-Also provide `bin/pai` as a convenience wrapper for use from `PATH`.
+Implement the assistant as a zsh source file with a `shask` function and zle widget.
+Also provide `bin/shask` as a convenience wrapper for use from `PATH`.
 
 The canonical pi backend uses a custom system prompt:
 
@@ -36,7 +36,7 @@ The shell system prompt is based on AIChat's built-in `%shell%` role, then exten
 
 The generated command is never executed without explicit confirmation.
 
-`pai` provides the full menu flow:
+`shask` provides the full menu flow:
 
 - execute
 - revise
@@ -49,10 +49,10 @@ current zle buffer with the generated command and lets the user press Enter.
 
 ## Consequences
 
-- Sourcing `shell-assist.zsh` is the preferred install path.
-- `bin/pai` is useful, but commands that must affect the current shell will not
+- Sourcing `shask.zsh` is the preferred install path.
+- `bin/shask` is useful, but commands that must affect the current shell will not
   persist because the wrapper runs in a child shell.
 - Context is small by default: OS, zsh version, and cwd.
-- Git context is opt-in with `PI_SHELL_ASSIST_CONTEXT=git` to keep prompts faster.
+- Git context is opt-in with `SHASK_CONTEXT=git` to keep prompts faster.
 - No file contents are sent to pi by default.
 - The implementation is portable within zsh/macOS without Rust or Python.
