@@ -1,5 +1,9 @@
 # shask
 
+<p align="center">
+  <img src="Icon-iOS-Default-1024x1024@1x.png" alt="shask icon" width="160">
+</p>
+
 **Ask your shell. Powered by Pi.**
 
 Pi-powered zsh shell assistant for macOS. Generate, review, revise, explain,
