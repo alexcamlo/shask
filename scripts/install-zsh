@@ -30,7 +30,7 @@ case "${1:---print}" in
     else
       {
         print
-        print -r -- "# Pi shell assistant"
+        print -r -- "# shask"
         print -r -- "$snippet"
       } >> "$zshrc"
       print -r -- "Installed in $zshrc"

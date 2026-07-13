@@ -1,36 +1,20 @@
 # Ask your shell. Powered by Pi, for zsh on macOS.
 # Source this file from ~/.zshrc to get:
-#   - shask: confirmed shell-assistant command runner
+#   - shask: confirmed command runner
 #   - Alt+E: replace the current zle buffer with a generated command
 
 # Configuration is persisted by `shask --model <provider/model>` in:
 #   ${XDG_CONFIG_HOME:-$HOME/.config}/shask/config
-# Legacy pai environment variables and config remain supported during migration.
 #   SHASK_CONTEXT=basic          # none | basic | git
 #   SHASK_BINDKEY=1              # set 0 to skip key binding
 #   SHASK_KEY=$'\ee'             # Alt+E by default
 #   SHASK_MAX_STATUS_LINES=40
 
 : ${SHASK_CONFIG:=${XDG_CONFIG_HOME:-$HOME/.config}/shask/config}
-: ${SHASK_LEGACY_CONFIG:=${PI_SHELL_ASSIST_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/shell-assist/config}}
-: ${SHASK_CONTEXT:=${PI_SHELL_ASSIST_CONTEXT:-basic}}
-: ${SHASK_BINDKEY:=${PI_SHELL_ASSIST_BINDKEY:-1}}
-: ${SHASK_MAX_STATUS_LINES:=${PI_SHELL_ASSIST_MAX_STATUS_LINES:-40}}
-if [[ -n "${SHASK_MODEL:-}" ]]; then
-  _SHASK_MODEL_ORIGIN="new-env"
-elif [[ -n "${PI_SHELL_ASSIST_MODEL:-}" ]]; then
-  SHASK_MODEL="$PI_SHELL_ASSIST_MODEL"
-  _SHASK_MODEL_ORIGIN="legacy-env"
-else
-  _SHASK_MODEL_ORIGIN="none"
-fi
-if [[ -z "${SHASK_KEY:-}" ]]; then
-  if [[ -n "${PI_SHELL_ASSIST_KEY:-}" ]]; then
-    SHASK_KEY="$PI_SHELL_ASSIST_KEY"
-  else
-    SHASK_KEY=$'\ee'
-  fi
-fi
+: ${SHASK_CONTEXT:=basic}
+: ${SHASK_BINDKEY:=1}
+: ${SHASK_MAX_STATUS_LINES:=40}
+: ${SHASK_KEY:=$'\ee'}
 
 _shask_has() {
   command -v "$1" >/dev/null 2>&1
@@ -103,10 +87,6 @@ _shask_set_model() {
 _shask_load_model() {
   local saved_model
   if saved_model="$(_shask_model_from_config "$SHASK_CONFIG" 2>/dev/null)"; then
-    SHASK_MODEL="$saved_model"
-  elif [[ "$_SHASK_MODEL_ORIGIN" == new-env ]]; then
-    return 0
-  elif saved_model="$(_shask_model_from_config "$SHASK_LEGACY_CONFIG" 2>/dev/null)"; then
     SHASK_MODEL="$saved_model"
   elif [[ -z "${SHASK_MODEL:-}" ]]; then
     SHASK_MODEL="openai-codex/gpt-5.4-mini"
@@ -383,12 +363,6 @@ shask() {
       _shask_menu "$text"
       ;;
   esac
-}
-
-# Backward-compatible alias for the previous CLI name.
-pai() {
-  print -u2 -r -- "pai has been renamed to shask; please update your commands."
-  shask "$@"
 }
 
 _shask_generate_with_spinner() {

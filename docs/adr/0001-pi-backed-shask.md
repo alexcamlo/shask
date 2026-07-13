@@ -1,4 +1,4 @@
-# ADR 0001: Pi-backed shask shell assistant
+# ADR 0001: Pi-backed shask
 
 ## Status
 
@@ -6,10 +6,10 @@ Accepted
 
 ## Context
 
-We want the shell-assistant behavior from `sigoden/aichat`, but implemented with
-`pi` and optimized for the user's environment: zsh on macOS 26+.
+We want the command-generation workflow from `sigoden/aichat`, but implemented
+with `pi` and optimized for the user's environment: zsh on macOS 26+.
 
-AIChat's relevant shell-assistant behavior:
+AIChat behavior relevant to shask:
 
 - generate a shell command from natural language
 - use OS/shell context in the prompt
@@ -29,7 +29,7 @@ Also provide `bin/shask` as a convenience wrapper for use from `PATH`.
 The canonical pi backend uses a custom system prompt:
 
 ```sh
-pi --model openai-codex/gpt-5.4-mini --system-prompt '<shell assistant prompt>' --no-extensions --no-tools -p --no-session '<request>'
+pi --model openai-codex/gpt-5.4-mini --system-prompt '<command-generation prompt>' --no-extensions --no-tools -p --no-session '<request>'
 ```
 
 The shell system prompt is based on AIChat's built-in `%shell%` role, then extended with macOS/zsh-specific safety and Finder-counting semantics.

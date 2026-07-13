@@ -9,11 +9,10 @@
 
 set -euo pipefail
 
-: ${SHASK_REPO_URL:=${SHELL_ASSIST_REPO_URL:-https://github.com/alexcamlo/shask.git}}
-: ${SHASK_REF:=${SHELL_ASSIST_REF:-main}}
-: ${SHASK_INSTALL_DIR:=${SHELL_ASSIST_INSTALL_DIR:-$HOME/.local/share/shask}}
-: ${SHASK_BIN_DIR:=${SHELL_ASSIST_BIN_DIR:-$HOME/.local/bin}}
-: ${SHASK_LEGACY_INSTALL_DIR:=$HOME/.local/share/shell-assist}
+: ${SHASK_REPO_URL:=https://github.com/alexcamlo/shask.git}
+: ${SHASK_REF:=main}
+: ${SHASK_INSTALL_DIR:=$HOME/.local/share/shask}
+: ${SHASK_BIN_DIR:=$HOME/.local/bin}
 
 install_script_path="${0:A}"
 zshrc="${ZDOTDIR:-$HOME}/.zshrc"
@@ -90,12 +89,12 @@ EOF
 
 validate_zshrc_blocks() {
   awk '
-    $0 == "# >>> shask >>>" || $0 == "# >>> shell-assist >>>" {
+    $0 == "# >>> shask >>>" {
       if (open) exit 1
       open=1
       next
     }
-    $0 == "# <<< shask <<<" || $0 == "# <<< shell-assist <<<" {
+    $0 == "# <<< shask <<<" {
       if (!open) exit 1
       open=0
     }
@@ -113,19 +112,14 @@ remove_zshrc_block() {
     return 1
   fi
   if (( dry_run )); then
-    say "Would remove existing shask/shell-assist blocks from $zshrc"
+    say "Would remove existing shask block from $zshrc"
     return 0
   fi
 
-  awk -v home="$HOME" '
-    function is_legacy_source(line, path) {
-      path = home "/.local/share/shell-assist/shell-assist.zsh"
-      return line == "source \"" path "\"" ||
-             line == "[ -f \"" path "\" ] && source \"" path "\""
-    }
-    $0 == "# >>> shask >>>" || $0 == "# >>> shell-assist >>>" { skip=1; next }
-    $0 == "# <<< shask <<<" || $0 == "# <<< shell-assist <<<" { skip=0; next }
-    !skip && !is_legacy_source($0) { print }
+  awk '
+    $0 == "# >>> shask >>>" { skip=1; next }
+    $0 == "# <<< shask <<<" { skip=0; next }
+    !skip { print }
   ' "$zshrc" > "$tmp"
   mv "$tmp" "$zshrc"
 }
@@ -137,7 +131,7 @@ write_zshrc_block() {
   block="$(zshrc_block)"
 
   if (( dry_run )); then
-    say "Would replace existing shask/shell-assist integration in $zshrc with:"
+    say "Would replace the existing shask integration in $zshrc with:"
     print -r -- "$block"
     return 0
   fi
@@ -150,19 +144,20 @@ write_zshrc_block() {
   } >> "$zshrc"
 }
 
-is_legacy_install() {
-  [[ -f "$SHASK_LEGACY_INSTALL_DIR/shell-assist.zsh" && -f "$SHASK_LEGACY_INSTALL_DIR/bin/pai" ]]
-}
-
 move_to_trash() {
   local item_path="$1"
   [[ -e "$item_path" || -L "$item_path" ]] || return 0
 
   local trash_dir="$HOME/.Trash"
-  local name timestamp target
+  local name timestamp target base counter=0
   timestamp="$(date +%Y%m%d%H%M%S)"
   name="${item_path:t}"
-  target="$trash_dir/${name}.shask.$timestamp"
+  base="$trash_dir/${name}.shask.$timestamp"
+  target="$base"
+  while [[ -e "$target" || -L "$target" ]]; do
+    (( counter += 1 ))
+    target="${base}.${counter}"
+  done
 
   if (( dry_run )); then
     say "Would move $item_path to $target"
@@ -179,8 +174,7 @@ install_from_local_checkout() {
   run mkdir -p "$SHASK_INSTALL_DIR/bin"
   run cp "$source_dir/shask.zsh" "$SHASK_INSTALL_DIR/shask.zsh"
   run cp "$source_dir/bin/shask" "$SHASK_INSTALL_DIR/bin/shask"
-  run cp "$source_dir/bin/pai" "$SHASK_INSTALL_DIR/bin/pai"
-  run chmod +x "$SHASK_INSTALL_DIR/bin/shask" "$SHASK_INSTALL_DIR/bin/pai"
+  run chmod +x "$SHASK_INSTALL_DIR/bin/shask"
 }
 
 install_from_git() {
@@ -211,15 +205,6 @@ link_command() {
     return 0
   fi
 
-  if [[ "$name" == pai && ( -e "$link" || -L "$link" ) ]]; then
-    local existing_target=""
-    [[ -L "$link" ]] && existing_target="$(readlink "$link")"
-    if [[ "$existing_target" != "$SHASK_LEGACY_INSTALL_DIR/bin/pai" ]]; then
-      say "Leaving existing non-shask command untouched: $link"
-      return 0
-    fi
-  fi
-
   if [[ -e "$link" || -L "$link" ]]; then
     move_to_trash "$link"
   fi
@@ -245,17 +230,7 @@ install_shask() {
   fi
 
   link_command shask
-  link_command pai
   write_zshrc_block
-
-  if [[ "$SHASK_LEGACY_INSTALL_DIR" != "$SHASK_INSTALL_DIR" && ( -e "$SHASK_LEGACY_INSTALL_DIR" || -L "$SHASK_LEGACY_INSTALL_DIR" ) ]]; then
-    if is_legacy_install; then
-      say "Moving legacy shell-assist install aside: $SHASK_LEGACY_INSTALL_DIR"
-      move_to_trash "$SHASK_LEGACY_INSTALL_DIR"
-    else
-      say "Leaving unrecognized legacy path untouched: $SHASK_LEGACY_INSTALL_DIR"
-    fi
-  fi
 
   say "shask installed. Restart zsh or run:"
   say "  source \"$(source_path_for_zshrc)\""
@@ -267,7 +242,7 @@ remove_owned_command_link() {
   local name="$1" link="$SHASK_BIN_DIR/$1" existing_target=""
   [[ -L "$link" ]] || return 0
   existing_target="$(readlink "$link")"
-  if [[ "$existing_target" == "$SHASK_INSTALL_DIR/bin/$name" || "$existing_target" == "$SHASK_LEGACY_INSTALL_DIR/bin/pai" ]]; then
+  if [[ "$existing_target" == "$SHASK_INSTALL_DIR/bin/$name" ]]; then
     move_to_trash "$link"
   fi
 }
@@ -275,11 +250,7 @@ remove_owned_command_link() {
 uninstall_shask() {
   remove_zshrc_block
   remove_owned_command_link shask
-  remove_owned_command_link pai
   move_to_trash "$SHASK_INSTALL_DIR"
-  if [[ "$SHASK_LEGACY_INSTALL_DIR" != "$SHASK_INSTALL_DIR" ]] && is_legacy_install; then
-    move_to_trash "$SHASK_LEGACY_INSTALL_DIR"
-  fi
   say "shask uninstalled. Restart zsh or remove it from this shell session manually."
 }
 

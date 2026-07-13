@@ -6,10 +6,10 @@
 
 **Ask your shell. Powered by Pi.**
 
-Pi-powered zsh shell assistant for macOS. Generate, review, revise, explain,
+Pi-powered zsh command assistant for macOS. Generate, review, revise, explain,
 copy, and safely execute shell commands from natural language.
 
-`shask` recreates the shell-assistant workflow from
+`shask` recreates the command-generation workflow from
 [`sigoden/aichat`](https://github.com/sigoden/aichat), but uses
 [`pi`](https://github.com/earendil-works/pi-coding-agent) as the LLM backend.
 
@@ -24,7 +24,7 @@ copy, and safely execute shell commands from natural language.
 - Add successfully executed generated commands to zsh history
 - Optional `Alt+E` zle widget that replaces the current prompt buffer
 - Animated Unicode spinner while the `Alt+E` request is generated
-- Uses `pi --system-prompt` so shell-assistant instructions are sent as a real system prompt
+- Uses `pi --system-prompt` so command-generation instructions are sent as a real system prompt
 
 ## Requirements
 
@@ -71,7 +71,6 @@ The installer:
 
 - installs files to `$HOME/.local/share/shask`
 - creates `$HOME/.local/bin/shask`
-- keeps `$HOME/.local/bin/pai` as a temporary compatibility alias
 - adds a managed source block to `${ZDOTDIR:-$HOME}/.zshrc`
 
 Uninstall, also one command:
@@ -155,14 +154,6 @@ export SHASK_KEY=$'\ee'      # Alt+E
 `SHASK_CONFIG` can redirect the config-file path, which is useful for isolated
 environments or tests.
 
-### Migrating from pai / shell-assist
-
-The installer replaces the old zsh integration and preserves `pai` as a
-deprecated forwarding command. Existing models from
-`~/.config/shell-assist/config` and legacy `PI_SHELL_ASSIST_*` environment
-variables continue to work when no new `SHASK_*` equivalent is configured.
-New model selections are saved to `~/.config/shask/config`.
-
 ### Context
 
 Context modes:
@@ -180,7 +171,7 @@ Default generation call shape:
 ```sh
 pi \
   --model "$SHASK_MODEL" \
-  --system-prompt '<shell assistant prompt>' \
+  --system-prompt '<command-generation prompt>' \
   --no-extensions \
   --no-tools \
   -p \
@@ -216,6 +207,6 @@ your current terminal session.
 Run smoke checks:
 
 ```sh
-zsh -n shask.zsh bin/shask bin/pai scripts/install-zsh install.sh tests/smoke.zsh tests/fixtures/bin/pi
+zsh -n shask.zsh bin/shask scripts/install-zsh install.sh tests/smoke.zsh tests/fixtures/bin/pi
 zsh tests/smoke.zsh
 ```
