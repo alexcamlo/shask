@@ -62,9 +62,12 @@ source "${repo}/shask.zsh"
   exit 1
 }
 
-typeset -a spinner_updates=()
+typeset -a spinner_updates=() zle_messages=()
 zle() {
-  [[ "$1" == -R ]] && spinner_updates+=("$2")
+  case "$1" in
+    -R) spinner_updates+=("$2") ;;
+    -M) zle_messages+=("$2") ;;
+  esac
   return 0
 }
 export PI_FIXTURE_DELAY=0.35
@@ -89,6 +92,10 @@ if _shask_zle 2>/dev/null; then
   exit 1
 fi
 unset PI_FIXTURE_FAIL
+[[ "${zle_messages[-1]}" == *"shask failed (exit 9): simulated pi failure"* ]] || {
+  print -u2 -r -- "expected ZLE failure diagnostic, got: ${zle_messages[-1]:-none}"
+  exit 1
+}
 [[ "$BUFFER" == "keep my request" ]] || {
   print -u2 -r -- "expected failed generation to restore the request"
   exit 1

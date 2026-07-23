@@ -369,19 +369,28 @@ _shask_generate_with_spinner() {
   emulate -L zsh
   setopt localoptions nomonitor
 
-  local request="$1" generated="" line pid coproc_fd
+  local request="$1" generated="" line pid coproc_fd payload
   local marker="__SHASK_DONE_${$}_${RANDOM}_${RANDOM}__"
-  local done_prefix="${marker}:" exit_code="" completed=0 frame=1
+  local done_prefix="${marker}:done:" error_prefix="${marker}:error:"
+  local exit_code="" completed=0 frame=1
+  typeset -g _SHASK_FAILURE_REASON="" _SHASK_FAILURE_EXIT_CODE=""
   local -a spinner_frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
 
   zmodload -F zsh/zselect b:zselect || return 1
 
   coproc {
-    local result child_exit_code
-    result="$(_shask_generate "$request" </dev/null)"
+    local result child_exit_code error_summary
+    result="$(_shask_generate "$request" </dev/null 2>&1)"
     child_exit_code=$?
-    [[ -n "$result" ]] && print -r -- "$result"
-    print -r -- "${marker}:${child_exit_code}"
+    if (( child_exit_code == 0 )); then
+      [[ -n "$result" ]] && print -r -- "$result"
+      print -r -- "${done_prefix}${child_exit_code}"
+    else
+      # ZLE does not render a coprocess's stderr, so return its first diagnostic
+      # line through the protocol instead of reducing every failure to "shask failed".
+      error_summary="${result%%$'\n'*}"
+      print -r -- "${error_prefix}${child_exit_code}:${error_summary}"
+    fi
   }
   pid=$!
   exec {coproc_fd}<&p
@@ -395,6 +404,12 @@ _shask_generate_with_spinner() {
       if IFS= read -r -u "$coproc_fd" line; then
         if [[ "$line" == "${done_prefix}"* ]]; then
           exit_code="${line#$done_prefix}"
+          completed=1
+        elif [[ "$line" == "${error_prefix}"* ]]; then
+          payload="${line#$error_prefix}"
+          exit_code="${payload%%:*}"
+          _SHASK_FAILURE_REASON="${payload#*:}"
+          _SHASK_FAILURE_EXIT_CODE="$exit_code"
           completed=1
         else
           generated+="${generated:+$'\n'}$line"
@@ -434,7 +449,11 @@ _shask_zle() {
   else
     BUFFER="$old"
     CURSOR=${#BUFFER}
-    zle -M "shask failed"
+    if [[ -n "${_SHASK_FAILURE_REASON:-}" ]]; then
+      zle -M "shask failed (exit ${_SHASK_FAILURE_EXIT_CODE:-unknown}): ${_SHASK_FAILURE_REASON[1,160]}"
+    else
+      zle -M "shask failed (exit ${_SHASK_FAILURE_EXIT_CODE:-unknown}); run 'shask --print …' to see diagnostics."
+    fi
     return 1
   fi
 }
