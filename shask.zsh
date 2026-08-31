@@ -147,6 +147,7 @@ Additional rules:
 - For "how many items are in FOLDER", count immediate visible Finder-like items: find FOLDER -mindepth 1 -maxdepth 1 ! -name '.*' | wc -l
 - For recursive requests such as "all files under FOLDER" or "including subfolders", use recursive find: find FOLDER -type f | wc -l
 - Quote paths and user data safely. Expand ~ to the user's home path when helpful.
+- For name searches, default to case-insensitive substring matching such as -iname '*review-loop*' and do not add -type f unless the user explicitly asks for regular files. This includes extension variants and symlinks.
 - Prefer built-in macOS/BSD utilities unless the user clearly asks for another tool.
 - Do not invent files, directories, flags, or commands when a standard macOS equivalent exists.
 - Avoid irreversible destructive commands. Prefer trash/mv-to-Trash patterns over rm/rmdir unless the user explicitly asks for permanent deletion.
@@ -160,6 +161,8 @@ Examples:
   Command: find "$HOME/Downloads" -type f | wc -l
 - Request: find all pdfs bigger than 10mb under Downloads
   Command: find "$HOME/Downloads" -type f -iname '*.pdf' -size +10M -print
+- Request: find a file with name review-loop
+  Command: find . -iname '*review-loop*' -print
 EOF
 }
 
