@@ -264,13 +264,13 @@ _shask_menu() {
     return 1
   fi
 
-  action_prompt="%F{cyan}e%f%F{244}xecute | %f%F{cyan}r%f%F{244}evise | %f%F{cyan}d%f%F{244}escribe | %f%F{cyan}c%f%F{244}opy | %f%F{cyan}q%f%F{244}uit%f: "
+  action_prompt="%f%k%s%F{magenta}e%f%F{grey}xecute | %f%F{magenta}r%f%F{grey}evise | %f%F{magenta}d%f%F{grey}escribe | %f%F{magenta}c%f%F{grey}opy | %f%F{magenta}q%f%F{grey}uit%f%k%s: "
 
   while true; do
-    print -P -- "%F{214}${command_text}%f"
+    print -P -- "%F{yellow}${command_text}%f"
     print -Pn -- "$action_prompt"
-    read -sk 1 choice
-    print
+    read -k 1 choice
+    print -n -- $'\r\e[2K'
 
     case "$choice" in
       e|E)
