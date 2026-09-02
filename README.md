@@ -23,7 +23,7 @@ copy, and safely execute shell commands from natural language.
 - Copy commands to the clipboard with `pbcopy`
 - Add successfully executed generated commands to zsh history
 - Optional `Alt+E` zle widget that replaces the current prompt buffer
-- Animated Unicode spinner while the `Alt+E` request is generated
+- Progress feedback while `shask` or `Alt+E` waits for Pi
 - Uses `pi --system-prompt` so command-generation instructions are sent as a real system prompt
 
 ## Requirements

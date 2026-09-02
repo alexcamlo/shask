@@ -184,7 +184,9 @@ _shask_call_pi() {
     return 127
   fi
 
-  command pi \
+  [[ -t 2 ]] && print -u2 -r -- "shask: asking Pi…"
+
+  pi \
     --model "${SHASK_MODEL}" \
     --system-prompt "$system_prompt" \
     --no-extensions \
@@ -256,7 +258,7 @@ _shask_menu() {
     return 2
   fi
 
-  command_text="$(_shask_generate "$request")" || return $?
+  command_text="$(_shask_generate_for_user "$request")" || return $?
   if [[ -z "$command_text" ]]; then
     print -u2 -r -- "shask: pi generated an empty command"
     return 1
@@ -286,7 +288,7 @@ _shask_menu() {
           request+="Previous command: $command_text"
           request+=$'\n'
           request+="Revision: $revision"
-          command_text="$(_shask_generate "$request")" || return $?
+          command_text="$(_shask_generate_for_user "$request")" || return $?
         fi
         ;;
       d|D)
@@ -354,7 +356,7 @@ shask() {
       if [[ -z "$text" ]]; then
         text="$(_shask_prompt_request)"
       fi
-      _shask_generate "$text"
+      _shask_generate_for_user "$text"
       ;;
     describe)
       if [[ -z "$text" ]]; then
@@ -372,7 +374,7 @@ _shask_generate_with_spinner() {
   emulate -L zsh
   setopt localoptions nomonitor
 
-  local request="$1" generated="" line pid coproc_fd payload
+  local request="$1" display="${2:-zle}" generated="" line pid coproc_fd payload
   local marker="__SHASK_DONE_${$}_${RANDOM}_${RANDOM}__"
   local done_prefix="${marker}:done:" error_prefix="${marker}:error:"
   local exit_code="" completed=0 frame=1
@@ -399,7 +401,11 @@ _shask_generate_with_spinner() {
   exec {coproc_fd}<&p
 
   while (( ! completed )); do
-    zle -R "${spinner_frames[frame]} Generating command…"
+    if [[ "$display" == zle ]]; then
+      zle -R "${spinner_frames[frame]} Generating command…"
+    else
+      print -nu2 -r -- $'\r\e[2K'"${spinner_frames[frame]} Generating command…"
+    fi
     frame=$(( frame % ${#spinner_frames} + 1 ))
 
     if zselect -t 10 -r "$coproc_fd"; then
@@ -426,11 +432,22 @@ _shask_generate_with_spinner() {
 
   exec {coproc_fd}<&-
   wait "$pid" 2>/dev/null || true
+  [[ "$display" == terminal ]] && print -nu2 -r -- $'\r\e[2K'
 
   [[ "$exit_code" == <-> ]] || return 1
   (( exit_code == 0 )) || return "$exit_code"
   [[ -n "$generated" ]] || return 1
   _SHASK_GENERATED="$generated"
+}
+
+_shask_generate_for_user() {
+  if [[ -t 2 ]]; then
+    _SHASK_GENERATED=""
+    _shask_generate_with_spinner "$1" terminal || return $?
+    print -r -- "$_SHASK_GENERATED"
+  else
+    _shask_generate "$1"
+  fi
 }
 
 _shask_zle() {
