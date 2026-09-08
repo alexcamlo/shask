@@ -62,44 +62,59 @@ source "${repo}/shask.zsh"
   exit 1
 }
 
-typeset -a spinner_updates=() zle_messages=()
-zle() {
-  case "$1" in
-    -R) spinner_updates+=("$2") ;;
-    -M) zle_messages+=("$2") ;;
-  esac
-  return 0
-}
-export PI_FIXTURE_DELAY=0.35
-BUFFER="list files"
-_shask_zle
-unset PI_FIXTURE_DELAY
-[[ "$BUFFER" == "ls -la" ]] || {
-  print -u2 -r -- "expected Alt+E widget result"
-  exit 1
-}
-(( $#spinner_updates >= 3 )) &&
-  [[ "$spinner_updates[1]" == *"Generating command…"* ]] &&
-  [[ "$spinner_updates[1]" != "$spinner_updates[2]" ]] || {
-  print -u2 -r -- "expected multiple distinct animated spinner updates"
-  exit 1
-}
+# Alt+E submits exactly one quoted request to the normal shask entry point.
+(
+  zle() { [[ "$1" == accept-line ]] && eval "$BUFFER"; }
+  shask() { [[ $# == 2 && "$1" == -- && "$2" == "$request" ]]; }
+  request=$'find "quotes"; $(false) `false` \nsecond line'
+  BUFFER="$request"
+  _shask_zle
+)
 
-export PI_FIXTURE_FAIL=1
-BUFFER="keep my request"
-if _shask_zle 2>/dev/null; then
-  print -u2 -r -- "expected failed generation"
-  exit 1
-fi
-unset PI_FIXTURE_FAIL
-[[ "${zle_messages[-1]}" == *"shask failed (exit 9): simulated pi failure"* ]] || {
-  print -u2 -r -- "expected ZLE failure diagnostic, got: ${zle_messages[-1]:-none}"
-  exit 1
-}
-[[ "$BUFFER" == "keep my request" ]] || {
-  print -u2 -r -- "expected failed generation to restore the request"
-  exit 1
-}
+# Both entry points share confirmation, current-shell execution, and failures.
+for entry in command widget; do
+  (
+    zle() { [[ "$1" == accept-line ]] && eval "$BUFFER"; }
+    invoke() {
+      if [[ "$entry" == widget ]]; then
+        BUFFER="list files"
+        _shask_zle
+      else
+        shask list files
+      fi
+    }
+    read() { choice="$action"; }
+    export PI_FIXTURE_OUTPUT='EXECUTED=yes'
+    action=q
+    invoke >/dev/null
+    [[ ! -v EXECUTED ]]
+    action=e
+    invoke >/dev/null
+    [[ "$EXECUTED" == yes ]]
+    unset EXECUTED
+    read() { return 1; }
+    invoke >/dev/null
+    [[ ! -v EXECUTED ]]
+    export PI_FIXTURE_FAIL=1
+    if invoke >/dev/null 2>&1; then
+      print -u2 -- "expected failed generation"
+      exit 1
+    else
+      [[ $? == 9 ]]
+    fi
+    unset PI_FIXTURE_FAIL
+    export PI_FIXTURE_OUTPUT=$'```zsh\n\n```'
+    if invoke >/dev/null 2>&1; then
+      print -u2 -- "expected empty generation to fail"
+      exit 1
+    fi
+  )
+done
+
+export PI_FIXTURE_OUTPUT=$'printf first\n\nprintf second'
+export PI_FIXTURE_WARNING='backend warning'
+[[ "$(shask --print test 2>/dev/null)" == "$PI_FIXTURE_OUTPUT" ]]
+unset PI_FIXTURE_OUTPUT PI_FIXTURE_WARNING
 
 err_file="${TMPDIR:-/tmp}/shask-smoke-$$.err"
 : > "$err_file"

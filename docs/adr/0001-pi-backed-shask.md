@@ -44,8 +44,12 @@ The generated command is never executed without explicit confirmation.
 - copy
 - quit
 
-The `Alt+E` widget follows AIChat's shell integration model: it replaces the
-current zle buffer with the generated command and lets the user press Enter.
+The `Alt+E` widget submits the current buffer as a quoted request to `shask`,
+using the same confirmation menu and Current-shell execution path.
+
+This amends the original buffer-replacement decision: a single user workflow
+was chosen over a separate edit-before-Enter workflow. Alt+E submits the request,
+not the generated command; execution still requires choosing execute.
 
 ## Consequences
 

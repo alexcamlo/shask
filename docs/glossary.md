@@ -32,4 +32,4 @@ macOS version, zsh version, and current directory. Limited git status is opt-in.
 ## zle widget
 
 A zsh line-editor function. This project binds one to `Alt+E` so the current
-buffer can be replaced with a generated command before execution.
+buffer becomes a request in the same Confirmation menu used by `shask`.

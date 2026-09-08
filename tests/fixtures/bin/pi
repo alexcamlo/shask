@@ -4,10 +4,15 @@
 system_prompt=""
 user_message=""
 
-[[ -n "${PI_FIXTURE_DELAY:-}" ]] && sleep "$PI_FIXTURE_DELAY"
 if [[ "${PI_FIXTURE_FAIL:-0}" == 1 ]]; then
   print -u2 -r -- "simulated pi failure"
   exit 9
+fi
+
+[[ -n "${PI_FIXTURE_WARNING:-}" ]] && print -u2 -r -- "$PI_FIXTURE_WARNING"
+if (( ${+PI_FIXTURE_OUTPUT} )); then
+  print -r -- "$PI_FIXTURE_OUTPUT"
+  exit 0
 fi
 
 while (( $# > 0 )); do

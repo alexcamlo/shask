@@ -1,7 +1,7 @@
 # Ask your shell. Powered by Pi, for zsh on macOS.
 # Source this file from ~/.zshrc to get:
 #   - shask: confirmed command runner
-#   - Alt+E: replace the current zle buffer with a generated command
+#   - Alt+E: open the same confirmation menu for the current buffer
 
 # Configuration is persisted by `shask --model <provider/model>` in:
 #   ${XDG_CONFIG_HOME:-$HOME/.config}/shask/config
@@ -197,7 +197,7 @@ _shask_call_pi() {
 }
 
 _shask_sanitize_command() {
-  perl -0pe 's/\r//g; s/^\s*```[a-zA-Z0-9_-]*\s*\n//; s/\n```\s*$//; s/^\s+//; s/\s+$//'
+  perl -0pe 's/\r//g; s/^\s*```[a-zA-Z0-9_-]*\s*\n//; s/(?:^|\n)```\s*$//; s/^\s+//; s/\s+$//'
 }
 
 _shask_generate() {
@@ -208,7 +208,12 @@ _shask_generate() {
   local system_prompt output
   system_prompt="$(_shask_generation_system_prompt)"
   output="$(_shask_call_pi "$system_prompt" "$request")" || return $?
-  print -r -- "$output" | _shask_sanitize_command
+  output="$(print -r -- "$output" | _shask_sanitize_command)" || return $?
+  if [[ -z "$output" ]]; then
+    print -u2 -r -- "shask: pi generated an empty command"
+    return 1
+  fi
+  print -r -- "$output"
 }
 
 _shask_describe() {
@@ -258,18 +263,18 @@ _shask_menu() {
     return 2
   fi
 
-  command_text="$(_shask_generate_for_user "$request")" || return $?
-  if [[ -z "$command_text" ]]; then
-    print -u2 -r -- "shask: pi generated an empty command"
-    return 1
-  fi
-
+  command_text="$(_shask_generate "$request")" || return $?
   action_prompt="%f%k%s%F{magenta}e%f%F{grey}xecute | %f%F{magenta}r%f%F{grey}evise | %f%F{magenta}d%f%F{grey}escribe | %f%F{magenta}c%f%F{grey}opy | %f%F{magenta}q%f%F{grey}uit%f%k%s: "
 
   while true; do
-    print -P -- "%F{yellow}${command_text}%f"
+    print -Pn -- "%F{yellow}"
+    print -r -- "$command_text"
+    print -Pn -- "%f"
     print -Pn -- "$action_prompt"
-    read -k 1 choice
+    if ! read -k 1 choice; then
+      print
+      return 0
+    fi
     print -n -- $'\r\e[2K'
 
     case "$choice" in
@@ -282,13 +287,13 @@ _shask_menu() {
         return $exit_code
         ;;
       r|R)
-        read -r "revision?Enter revision: "
+        read -r "revision?Enter revision: " || return 0
         if [[ -n "$revision" ]]; then
           request+=$'\n'
           request+="Previous command: $command_text"
           request+=$'\n'
           request+="Revision: $revision"
-          command_text="$(_shask_generate_for_user "$request")" || return $?
+          command_text="$(_shask_generate "$request")" || return $?
         fi
         ;;
       d|D)
@@ -356,7 +361,7 @@ shask() {
       if [[ -z "$text" ]]; then
         text="$(_shask_prompt_request)"
       fi
-      _shask_generate_for_user "$text"
+      _shask_generate "$text"
       ;;
     describe)
       if [[ -z "$text" ]]; then
@@ -370,112 +375,10 @@ shask() {
   esac
 }
 
-_shask_generate_with_spinner() {
-  emulate -L zsh
-  setopt localoptions nomonitor
-
-  local request="$1" display="${2:-zle}" generated="" line pid coproc_fd payload
-  local marker="__SHASK_DONE_${$}_${RANDOM}_${RANDOM}__"
-  local done_prefix="${marker}:done:" error_prefix="${marker}:error:"
-  local exit_code="" completed=0 frame=1
-  typeset -g _SHASK_FAILURE_REASON="" _SHASK_FAILURE_EXIT_CODE=""
-  local -a spinner_frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
-
-  zmodload -F zsh/zselect b:zselect || return 1
-
-  coproc {
-    local result child_exit_code error_summary
-    result="$(_shask_generate "$request" </dev/null 2>&1)"
-    child_exit_code=$?
-    if (( child_exit_code == 0 )); then
-      [[ -n "$result" ]] && print -r -- "$result"
-      print -r -- "${done_prefix}${child_exit_code}"
-    else
-      # ZLE does not render a coprocess's stderr, so return its first diagnostic
-      # line through the protocol instead of reducing every failure to "shask failed".
-      error_summary="${result%%$'\n'*}"
-      print -r -- "${error_prefix}${child_exit_code}:${error_summary}"
-    fi
-  }
-  pid=$!
-  exec {coproc_fd}<&p
-
-  while (( ! completed )); do
-    if [[ "$display" == zle ]]; then
-      zle -R "${spinner_frames[frame]} Generating command…"
-    else
-      print -nu2 -r -- $'\r\e[2K'"${spinner_frames[frame]} Generating command…"
-    fi
-    frame=$(( frame % ${#spinner_frames} + 1 ))
-
-    if zselect -t 10 -r "$coproc_fd"; then
-      line=""
-      if IFS= read -r -u "$coproc_fd" line; then
-        if [[ "$line" == "${done_prefix}"* ]]; then
-          exit_code="${line#$done_prefix}"
-          completed=1
-        elif [[ "$line" == "${error_prefix}"* ]]; then
-          payload="${line#$error_prefix}"
-          exit_code="${payload%%:*}"
-          _SHASK_FAILURE_REASON="${payload#*:}"
-          _SHASK_FAILURE_EXIT_CODE="$exit_code"
-          completed=1
-        else
-          generated+="${generated:+$'\n'}$line"
-        fi
-      else
-        exit_code=1
-        completed=1
-      fi
-    fi
-  done
-
-  exec {coproc_fd}<&-
-  wait "$pid" 2>/dev/null || true
-  [[ "$display" == terminal ]] && print -nu2 -r -- $'\r\e[2K'
-
-  [[ "$exit_code" == <-> ]] || return 1
-  (( exit_code == 0 )) || return "$exit_code"
-  [[ -n "$generated" ]] || return 1
-  _SHASK_GENERATED="$generated"
-}
-
-_shask_generate_for_user() {
-  if [[ -t 2 ]]; then
-    _SHASK_GENERATED=""
-    _shask_generate_with_spinner "$1" terminal || return $?
-    print -r -- "$_SHASK_GENERATED"
-  else
-    _shask_generate "$1"
-  fi
-}
-
 _shask_zle() {
-  emulate -L zsh
-
-  if [[ -z "$BUFFER" ]]; then
-    zle -M "Type a natural-language request, then press Alt+E."
-    return 0
-  fi
-
-  local old="$BUFFER"
-  local generated
-  _SHASK_GENERATED=""
-  if _shask_generate_with_spinner "$old"; then
-    generated="$_SHASK_GENERATED"
-    BUFFER="$generated"
-    CURSOR=${#BUFFER}
-    zle -M "Generated command. Press Enter to run, or edit first."
-  else
-    BUFFER="$old"
-    CURSOR=${#BUFFER}
-    if [[ -n "${_SHASK_FAILURE_REASON:-}" ]]; then
-      zle -M "shask failed (exit ${_SHASK_FAILURE_EXIT_CODE:-unknown}): ${_SHASK_FAILURE_REASON[1,160]}"
-    else
-      zle -M "shask failed (exit ${_SHASK_FAILURE_EXIT_CODE:-unknown}); run 'shask --print …' to see diagnostics."
-    fi
-    return 1
-  fi
+  # Quote the request as data, then let zsh run the normal confirmation menu.
+  BUFFER="shask -- ${(q)BUFFER}"
+  zle accept-line
 }
 
 if [[ -o interactive ]] && (( ${+widgets} )); then

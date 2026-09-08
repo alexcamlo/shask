@@ -22,8 +22,8 @@ copy, and safely execute shell commands from natural language.
 - Explain generated or existing shell commands
 - Copy commands to the clipboard with `pbcopy`
 - Add successfully executed generated commands to zsh history
-- Optional `Alt+E` zle widget that replaces the current prompt buffer
-- Progress feedback while `shask` or `Alt+E` waits for Pi
+- Optional `Alt+E` shortcut to the same confirmation menu
+- Static progress message while `shask` or `Alt+E` waits for Pi
 - Uses `pi --system-prompt` so command-generation instructions are sent as a real system prompt
 
 ## Requirements
@@ -107,18 +107,17 @@ shask --print show listening tcp ports
 shask --describe 'find . -name "*.log" -mtime +7 -print'
 ```
 
-### Alt+E prompt replacement
+### Alt+E confirmation menu
 
 When `shask.zsh` is sourced in an interactive zsh session, `Alt+E` is
 bound automatically.
 
 1. Type a natural-language request at your shell prompt.
 2. Press `Alt+E`.
-3. The prompt buffer is replaced with a generated command.
-4. Review or edit the command.
-5. Press Enter yourself to run it.
+3. The same `shask` confirmation menu opens with your typed request.
+4. Choose execute, revise, describe, copy, or quit.
 
-This mirrors AIChat's shell integration and never auto-executes.
+Commands run only when you choose execute, just like calling `shask` directly.
 
 ## Configuration
 
@@ -198,7 +197,7 @@ your current terminal session.
 ## Safety notes
 
 - Commands are not executed without explicit confirmation.
-- The `Alt+E` widget only replaces your current prompt buffer.
+- `Alt+E` opens the same confirmation menu; it does not bypass confirmation.
 - Destructive commands are discouraged in the prompt; review everything before executing.
 - Successful generated commands are recorded in zsh history after execution.
 
@@ -207,6 +206,6 @@ your current terminal session.
 Run smoke checks:
 
 ```sh
-zsh -n shask.zsh bin/shask scripts/install-zsh install.sh tests/smoke.zsh tests/fixtures/bin/pi
+zsh -n shask.zsh bin/shask install.sh tests/smoke.zsh tests/fixtures/bin/pi
 zsh tests/smoke.zsh
 ```
