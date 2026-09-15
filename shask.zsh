@@ -89,7 +89,7 @@ _shask_load_model() {
   if saved_model="$(_shask_model_from_config "$SHASK_CONFIG" 2>/dev/null)"; then
     SHASK_MODEL="$saved_model"
   elif [[ -z "${SHASK_MODEL:-}" ]]; then
-    SHASK_MODEL="openai-codex/gpt-5.4-mini"
+    SHASK_MODEL="openai-codex/gpt-5.6-luna:low"
   fi
 }
 
