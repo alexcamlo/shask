@@ -6,8 +6,8 @@
 
 **Ask your shell. Powered by Pi.**
 
-Pi-powered zsh command assistant for macOS. Generate, review, revise, explain,
-copy, and safely execute shell commands from natural language.
+Pi-powered zsh command assistant for macOS and Linux. Generate, review, revise,
+explain, copy, and safely execute shell commands from natural language.
 
 `shask` recreates the command-generation workflow from
 [`sigoden/aichat`](https://github.com/sigoden/aichat), but uses
@@ -16,11 +16,11 @@ copy, and safely execute shell commands from natural language.
 ## Features
 
 - Natural language → valid zsh command
-- macOS 26+ target environment
+- Detects the host OS and generates platform-appropriate commands
 - Confirmation before execution
 - Revise generated commands without starting over
 - Explain generated or existing shell commands
-- Copy commands to the clipboard with `pbcopy`
+- Copy commands with `pbcopy`, `wl-copy`, `xclip`, or `xsel`
 - Add successfully executed generated commands to zsh history
 - Optional `Alt+E` shortcut to the same confirmation menu
 - Static progress message while `shask` or `Alt+E` waits for Pi
@@ -28,10 +28,10 @@ copy, and safely execute shell commands from natural language.
 
 ## Requirements
 
-- macOS 26+
+- macOS or Linux
 - zsh
 - `pi` available on `PATH`
-- `pbcopy` for clipboard support (built into macOS)
+- Optional clipboard command: `pbcopy`, `wl-copy`, `xclip`, or `xsel`
 
 ## Install
 
@@ -178,8 +178,8 @@ pi \
   '<natural language request>'
 ```
 
-The system prompt starts from AIChat's `%shell%` role and adds macOS/zsh-specific
-safety rules and Finder-like counting behavior.
+The system prompt starts from AIChat's `%shell%` role, includes the detected OS,
+and adds zsh-specific safety rules and Finder-like counting behavior.
 
 ## Executable wrapper
 

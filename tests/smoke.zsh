@@ -116,6 +116,18 @@ export PI_FIXTURE_WARNING='backend warning'
 [[ "$(shask --print test 2>/dev/null)" == "$PI_FIXTURE_OUTPUT" ]]
 unset PI_FIXTURE_OUTPUT PI_FIXTURE_WARNING
 
+SHASK_OS_LABEL="Linux test-kernel (x86_64)"
+platform_prompt="$(_shask_generation_system_prompt)"
+[[ "$platform_prompt" == *"commands for Linux test-kernel (x86_64)"* ]] || {
+  print -u2 -r -- "expected detected OS in generation prompt"
+  exit 1
+}
+[[ "$platform_prompt" == *"xdg-open"* ]] || {
+  print -u2 -r -- "expected platform-specific opener guidance"
+  exit 1
+}
+unset SHASK_OS_LABEL
+
 err_file="${TMPDIR:-/tmp}/shask-smoke-$$.err"
 : > "$err_file"
 _shask_context_block >/dev/null 2>"$err_file"

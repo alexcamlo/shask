@@ -1,4 +1,4 @@
-# Ask your shell. Powered by Pi, for zsh on macOS.
+# Ask your shell. Powered by Pi, for zsh.
 # Source this file from ~/.zshrc to get:
 #   - shask: confirmed command runner
 #   - Alt+E: open the same confirmation menu for the current buffer
@@ -96,11 +96,14 @@ _shask_load_model() {
 _shask_load_model
 
 _shask_os_label() {
-  local product version build
-  product="$(sw_vers -productName 2>/dev/null || print -r -- macOS)"
-  version="$(sw_vers -productVersion 2>/dev/null || print -r -- unknown)"
-  build="$(sw_vers -buildVersion 2>/dev/null || true)"
-  print -r -- "$product $version${build:+ ($build)}"
+  [[ -n "${SHASK_OS_LABEL:-}" ]] && { print -r -- "$SHASK_OS_LABEL"; return; }
+
+  local kernel="$(uname -s 2>/dev/null || print -r -- unknown)"
+  if [[ "$kernel" == Darwin ]] && _shask_has sw_vers; then
+    print -r -- "macOS $(sw_vers -productVersion 2>/dev/null || print -r -- unknown) ($(uname -m))"
+  else
+    print -r -- "$kernel $(uname -r 2>/dev/null || print -r -- unknown) ($(uname -m 2>/dev/null || print -r -- unknown))"
+  fi
 }
 
 _shask_context_block() {
@@ -148,8 +151,10 @@ Additional rules:
 - For recursive requests such as "all files under FOLDER" or "including subfolders", use recursive find: find FOLDER -type f | wc -l
 - Quote paths and user data safely. Expand ~ to the user's home path when helpful.
 - For name searches, default to case-insensitive substring matching such as -iname '*review-loop*' and do not add -type f unless the user explicitly asks for regular files. This includes extension variants and symlinks.
-- Prefer built-in macOS/BSD utilities unless the user clearly asks for another tool.
-- Do not invent files, directories, flags, or commands when a standard macOS equivalent exists.
+- Use utilities and flags available on the detected target OS; prefer its built-in tools unless the user clearly asks for another tool.
+- For opening a file or URL, use open on macOS, xdg-open (or gio open) on Linux, and the target OS's native equivalent elsewhere.
+- Never emit a command from another OS when the target OS has a native equivalent.
+- Do not invent files, directories, flags, or commands when a standard target-OS equivalent exists.
 - Avoid irreversible destructive commands. Prefer trash/mv-to-Trash patterns over rm/rmdir unless the user explicitly asks for permanent deletion.
 
 Examples:
@@ -226,11 +231,18 @@ _shask_describe() {
 
 _shask_copy() {
   local command_text="$1"
-  if ! _shask_has pbcopy; then
-    print -u2 -r -- "shask: pbcopy command not found"
+  if _shask_has pbcopy; then
+    print -rn -- "$command_text" | pbcopy
+  elif _shask_has wl-copy; then
+    print -rn -- "$command_text" | wl-copy
+  elif _shask_has xclip; then
+    print -rn -- "$command_text" | xclip -selection clipboard
+  elif _shask_has xsel; then
+    print -rn -- "$command_text" | xsel --clipboard --input
+  else
+    print -u2 -r -- "shask: no supported clipboard command found"
     return 127
   fi
-  print -rn -- "$command_text" | pbcopy
 }
 
 _shask_record_history() {
