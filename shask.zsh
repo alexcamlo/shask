@@ -194,7 +194,6 @@ _shask_call_pi() {
   pi \
     --model "${SHASK_MODEL}" \
     --system-prompt "$system_prompt" \
-    --no-extensions \
     --no-tools \
     -p \
     --no-session \

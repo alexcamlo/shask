@@ -29,7 +29,7 @@ Also provide `bin/shask` as a convenience wrapper for use from `PATH`.
 The canonical pi backend uses a custom system prompt:
 
 ```sh
-pi --model openai-codex/gpt-5.4-mini --system-prompt '<command-generation prompt>' --no-extensions --no-tools -p --no-session '<request>'
+pi --model openai-codex/gpt-5.4-mini --system-prompt '<command-generation prompt>' --no-tools -p --no-session '<request>'
 ```
 
 The shell system prompt is based on AIChat's built-in `%shell%` role, then extended with macOS/zsh-specific safety and Finder-counting semantics.

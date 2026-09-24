@@ -171,7 +171,6 @@ Default generation call shape:
 pi \
   --model "$SHASK_MODEL" \
   --system-prompt '<command-generation prompt>' \
-  --no-extensions \
   --no-tools \
   -p \
   --no-session \

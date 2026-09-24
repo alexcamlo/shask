@@ -24,7 +24,11 @@ while (( $# > 0 )); do
     --model)
       shift 2
       ;;
-    --no-extensions|--no-tools|--no-session|-p)
+    --no-extensions)
+      print -u2 -r -- "shask must allow configured model providers"
+      exit 2
+      ;;
+    --no-tools|--no-session|-p)
       shift
       ;;
     *)

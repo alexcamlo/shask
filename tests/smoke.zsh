@@ -23,7 +23,7 @@ ZDOTDIR="$XDG_CONFIG_HOME" SHASK_BINDKEY=1 zsh -ic '
   exit 1
 }
 
-[[ "$(shask --model)" == "openai-codex/gpt-5.4-mini" ]] || {
+[[ "$(shask --model)" == "openai-codex/gpt-5.6-luna:low" ]] || {
   print -u2 -r -- "expected default model"
   exit 1
 }
